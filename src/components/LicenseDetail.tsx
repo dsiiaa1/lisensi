@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { License } from "@/lib/mockData";
 import { formatDate, getDaysUntilExpiry, getStatusColor, getCategoryColor } from "@/lib/utils";
+import { useLanguage } from "@/lib/LanguageContext";
 
 interface LicenseDetailProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ interface LicenseDetailProps {
 }
 
 export default function LicenseDetail({ isOpen, onClose, license }: LicenseDetailProps) {
+  const { t } = useLanguage();
   if (!isOpen || !license) return null;
 
   const days = getDaysUntilExpiry(license.expiryDate);
@@ -61,19 +63,19 @@ export default function LicenseDetail({ isOpen, onClose, license }: LicenseDetai
             isExpired ? "text-[var(--status-expired)]" : isUrgent ? "text-[var(--status-expiring)]" : "text-[var(--status-active)]"
           }`}>
             {isExpired
-              ? `Lisensi ini telah kadaluarsa ${Math.abs(days)} hari yang lalu`
-              : `${days} hari menuju tanggal kadaluarsa`}
+              ? t("detail.expired_ago", { days: Math.abs(days) })
+              : t("detail.days_until_expiry", { days: days })}
           </span>
         </div>
 
         {/* Details Grid */}
         <div className="grid grid-cols-2 gap-4 mb-6">
-          <DetailItem icon={Hash} label="Nomor Lisensi" value={license.licenseNumber} />
-          <DetailItem icon={User} label="PIC / Pemilik" value={license.owner} />
-          <DetailItem icon={Building} label="Vendor" value={license.vendor} />
-          <DetailItem icon={Tag} label="Kategori" value={license.category} />
-          <DetailItem icon={Calendar} label="Tanggal Terbit" value={formatDate(license.issueDate)} />
-          <DetailItem icon={Calendar} label="Kadaluarsa" value={formatDate(license.expiryDate)} />
+          <DetailItem icon={Hash} label={t("modal.field_number").replace(" *", "")} value={license.licenseNumber} />
+          <DetailItem icon={User} label={t("modal.field_owner").replace(" *", "")} value={license.owner} />
+          <DetailItem icon={Building} label={t("modal.field_vendor").replace(" *", "")} value={license.vendor} />
+          <DetailItem icon={Tag} label={t("modal.field_category").replace(" *", "")} value={license.category} />
+          <DetailItem icon={Calendar} label={t("modal.field_issue_date").replace(" *", "")} value={formatDate(license.issueDate)} />
+          <DetailItem icon={Calendar} label={t("modal.field_expiry_date").replace(" *", "")} value={formatDate(license.expiryDate)} />
         </div>
 
         {/* Notes */}
@@ -81,7 +83,7 @@ export default function LicenseDetail({ isOpen, onClose, license }: LicenseDetai
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-2.5">
               <StickyNote className="w-4 h-4 text-[var(--text-muted)]" />
-              <span className="text-[12px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">Catatan Tambahan</span>
+              <span className="text-[12px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">{t("detail.notes")}</span>
             </div>
             <p className="text-[14px] font-medium text-[var(--text-primary)] leading-relaxed p-4 rounded-2xl bg-[var(--bg-inset)] border border-[var(--border-subtle)]">
               {license.notes}
@@ -89,12 +91,11 @@ export default function LicenseDetail({ isOpen, onClose, license }: LicenseDetai
           </div>
         )}
 
-        {/* File */}
         {license.fileName && (
           <div>
             <div className="flex items-center gap-2 mb-2.5">
                <FileText className="w-4 h-4 text-[var(--text-muted)]" />
-               <span className="text-[12px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">Dokumen Terlampir</span>
+               <span className="text-[12px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">{t("detail.document")}</span>
             </div>
             <div className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-inset)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] transition-colors group">
               <div className="w-12 h-12 rounded-xl bg-[var(--bg-surface)] flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
@@ -102,11 +103,11 @@ export default function LicenseDetail({ isOpen, onClose, license }: LicenseDetai
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[14px] font-bold text-[var(--text-primary)] truncate">{license.fileName}</p>
-                <p className="text-[12px] font-medium text-[var(--text-muted)] mt-0.5">Berkas lisensi resmi</p>
+                <p className="text-[12px] font-medium text-[var(--text-muted)] mt-0.5">{t("detail.official_file")}</p>
               </div>
-              <button className="btn-secondary text-[13px] py-2 px-4 shadow-sm">
-                <Download className="w-4 h-4" /> Unduh
-              </button>
+              <a href={license.fileUrl !== '#' ? license.fileUrl : '#'} target="_blank" rel="noopener noreferrer" className="btn-secondary text-[13px] py-2 px-4 shadow-sm inline-flex items-center gap-2">
+                <Download className="w-4 h-4" /> {t("detail.download")}
+              </a>
             </div>
           </div>
         )}
@@ -114,7 +115,7 @@ export default function LicenseDetail({ isOpen, onClose, license }: LicenseDetai
         {/* Actions */}
         <div className="mt-8 pt-6 border-t border-[var(--border-subtle)]">
           <button onClick={onClose} className="btn-secondary w-full py-3 text-[14px]">
-            Tutup Detail
+            {t("detail.close")}
           </button>
         </div>
       </div>

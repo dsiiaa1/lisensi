@@ -31,10 +31,12 @@ import {
 import LicenseModal from "@/components/LicenseModal";
 import LicenseDetail from "@/components/LicenseDetail";
 import { supabase } from "@/lib/supabase";
+import { useLanguage } from "@/lib/LanguageContext";
 
 import { Suspense } from "react";
 
 function LicensesContent() {
+  const { t } = useLanguage();
   const [licenses, setLicenses] = useState<License[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -161,9 +163,9 @@ function LicensesContent() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="headline-lg">Manajemen <span className="gradient-text">Lisensi</span></h1>
+          <h1 className="headline-lg">{t("licenses.title")}</h1>
           <p className="text-[var(--text-secondary)] text-[14px] font-medium mt-1">
-            {isLoading ? "Memuat data..." : `${filteredLicenses.length} lisensi ditemukan`}
+            {isLoading ? t("licenses.loading") : t("licenses.found", { count: filteredLicenses.length })}
           </p>
         </div>
         <button
@@ -171,7 +173,7 @@ function LicensesContent() {
           className="btn-primary"
         >
           <Plus className="w-4.5 h-4.5" />
-          Tambah Lisensi Baru
+          {t("licenses.add_new")}
         </button>
       </div>
 
@@ -184,7 +186,7 @@ function LicensesContent() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari nama lisensi, nomor, vendor, atau PIC..."
+              placeholder={t("licenses.search_placeholder")}
               className="input pl-11 pr-10 py-3 rounded-full border-[var(--border-subtle)] shadow-sm bg-[var(--bg-surface)] text-[14px] font-medium"
             />
             {searchQuery && (
@@ -201,7 +203,7 @@ function LicensesContent() {
             className={`btn-secondary h-11 shrink-0 ${activeFilters > 0 ? "border-[var(--accent-gradient-start)] text-[var(--text-primary)]" : "border-[var(--border-subtle)] text-[var(--text-secondary)]"} bg-[var(--bg-surface)]`}
           >
             <Filter className="w-4.5 h-4.5" />
-            Filter & Urutkan
+            {t("licenses.filter_sort")}
             {activeFilters > 0 && (
               <span className="ml-1 w-5 h-5 rounded-full bg-[var(--accent-gradient-start)] text-white text-[11px] font-bold flex items-center justify-center">
                 {activeFilters}
@@ -213,36 +215,36 @@ function LicensesContent() {
         {showFilters && (
           <div className="mt-5 pt-5 border-t border-[var(--border-hover)] grid grid-cols-1 sm:grid-cols-3 gap-4 animate-fadeIn">
             <div>
-              <label className="block text-[12px] font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2">Kategori</label>
+              <label className="block text-[12px] font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2">{t("licenses.category")}</label>
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value as LicenseCategory | "")}
                 className="input py-2.5 rounded-xl border-[var(--border-subtle)] bg-[var(--bg-surface)]"
               >
-                <option value="">Semua Kategori</option>
+                <option value="">{t("licenses.all_categories")}</option>
                 {categories.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-[12px] font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2">Status</label>
+              <label className="block text-[12px] font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2">{t("licenses.status")}</label>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as LicenseStatus | "")}
                 className="input py-2.5 rounded-xl border-[var(--border-subtle)] bg-[var(--bg-surface)]"
               >
-                <option value="">Semua Status</option>
+                <option value="">{t("licenses.all_statuses")}</option>
                 {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-[12px] font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2">Pengurutan</label>
+              <label className="block text-[12px] font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2">{t("licenses.sorting")}</label>
               <button
                 onClick={() => setSortByExpiry(!sortByExpiry)}
                 className={`input flex items-center justify-between cursor-pointer py-2.5 rounded-xl border-[var(--border-subtle)] ${
                   sortByExpiry ? "border-[var(--accent-gradient-start)] bg-[rgba(99,102,241,0.05)] text-[var(--text-primary)]" : "bg-[var(--bg-surface)] text-[var(--text-secondary)]"
                 }`}
               >
-                <span className="text-[14px] font-medium">{sortByExpiry ? "Tanggal Terdekat" : "Paling Awal"}</span>
+                <span className="text-[14px] font-medium">{sortByExpiry ? t("licenses.sort_nearest") : t("licenses.sort_earliest")}</span>
                 <SortAsc className={`w-4.5 h-4.5 shrink-0 ${sortByExpiry ? "text-[var(--accent-gradient-start)]" : "text-[var(--text-muted)]"}`} />
               </button>
             </div>
@@ -252,7 +254,7 @@ function LicensesContent() {
                   onClick={() => { setCategoryFilter(""); setStatusFilter(""); setSortByExpiry(false); }}
                   className="text-[13px] font-bold text-[var(--status-expired)] hover:opacity-80 cursor-pointer flex items-center gap-1.5"
                 >
-                  <X className="w-4 h-4" /> Reset semua filter
+                  <X className="w-4 h-4" /> {t("licenses.reset_filters")}
                 </button>
               </div>
             )}
@@ -267,22 +269,22 @@ function LicensesContent() {
             <thead>
               <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-inset)]">
                 <th className="px-6 py-4 text-[12px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">
-                  Detail Lisensi
+                  {t("licenses.table_detail")}
                 </th>
                 <th className="px-6 py-4 text-[12px] font-bold text-[var(--text-secondary)] uppercase tracking-wider hidden md:table-cell">
-                  Kategori
+                  {t("licenses.table_category")}
                 </th>
                 <th className="px-6 py-4 text-[12px] font-bold text-[var(--text-secondary)] uppercase tracking-wider hidden lg:table-cell">
-                  Vendor
+                  {t("licenses.table_vendor")}
                 </th>
                 <th className="px-6 py-4 text-[12px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">
-                  Kadaluarsa
+                  {t("licenses.table_expiry")}
                 </th>
                 <th className="px-6 py-4 text-[12px] font-bold text-[var(--text-secondary)] uppercase tracking-wider hidden sm:table-cell text-center">
-                  Status
+                  {t("licenses.table_status")}
                 </th>
                 <th className="px-6 py-4 text-[12px] font-bold text-[var(--text-secondary)] uppercase tracking-wider text-right">
-                  Aksi
+                  {t("licenses.table_actions")}
                 </th>
               </tr>
             </thead>
@@ -291,7 +293,7 @@ function LicensesContent() {
                 <tr>
                   <td colSpan={6} className="text-center py-24">
                     <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-[var(--accent-gradient-start)]" />
-                    <p className="text-[14px] font-bold text-[var(--text-primary)]">Mengambil data lisensi...</p>
+                    <p className="text-[14px] font-bold text-[var(--text-primary)]">{t("licenses.loading")}</p>
                   </td>
                 </tr>
               ) : filteredLicenses.length === 0 ? (
@@ -300,8 +302,8 @@ function LicensesContent() {
                     <div className="w-16 h-16 rounded-full bg-[var(--bg-inset)] border border-[var(--border-subtle)] flex items-center justify-center mx-auto mb-4">
                       <FileText className="w-8 h-8 text-[var(--text-muted)]" />
                     </div>
-                    <p className="text-[16px] font-bold text-[var(--text-primary)]">Tidak ada lisensi ditemukan</p>
-                    <p className="text-[14px] font-medium text-[var(--text-muted)] mt-1">Coba ubah kata kunci pencarian atau reset filter.</p>
+                    <p className="text-[16px] font-bold text-[var(--text-primary)]">{t("licenses.not_found")}</p>
+                    <p className="text-[14px] font-medium text-[var(--text-muted)] mt-1">{t("licenses.not_found_desc")}</p>
                   </td>
                 </tr>
               ) : (
@@ -341,14 +343,14 @@ function LicensesContent() {
                           <button
                             onClick={() => setViewingLicense(license)}
                             className="w-9 h-9 rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent-gradient-start)] hover:bg-[rgba(99,102,241,0.1)] transition-colors cursor-pointer shadow-sm border border-transparent hover:border-[rgba(99,102,241,0.2)]"
-                            title="Lihat Detail"
+                            title={t("licenses.action_view")}
                           >
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => { setEditingLicense(license); setIsModalOpen(true); }}
                             className="w-9 h-9 rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--status-expiring)] hover:bg-[var(--status-expiring-bg)] transition-colors cursor-pointer shadow-sm border border-transparent hover:border-[rgba(245,158,11,0.2)]"
-                            title="Edit"
+                            title={t("licenses.action_edit")}
                           >
                             <Pencil className="w-4 h-4" />
                           </button>
@@ -359,7 +361,7 @@ function LicensesContent() {
                                 onClick={() => handleDelete(license.id)}
                                 className="text-[12px] px-3 py-1.5 rounded-full bg-[var(--status-expired)] text-white cursor-pointer font-bold hover:opacity-90"
                               >
-                                Ya, Hapus
+                                {t("licenses.confirm_delete")}
                               </button>
                               <button
                                 onClick={() => setDeleteConfirm(null)}
@@ -372,7 +374,7 @@ function LicensesContent() {
                             <button
                               onClick={() => setDeleteConfirm(license.id)}
                               className="w-9 h-9 rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--status-expired)] hover:bg-[var(--status-expired-bg)] transition-colors cursor-pointer shadow-sm border border-transparent hover:border-[rgba(239,68,68,0.2)]"
-                              title="Hapus"
+                              title={t("licenses.action_delete")}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>

@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Save, Upload, FileText, Calendar, Info, ShieldCheck } from "lucide-react";
+import { X, Save, Upload, FileText, Calendar, Info, ShieldCheck, Loader2 } from "lucide-react";
 import { License, LicenseCategory, LicenseStatus, categories, statuses } from "@/lib/mockData";
+import { useLanguage } from "@/lib/LanguageContext";
+import { supabase } from "@/lib/supabase";
 
 interface LicenseModalProps {
   isOpen: boolean;
@@ -12,6 +14,9 @@ interface LicenseModalProps {
 }
 
 export default function LicenseModal({ isOpen, onClose, onSave, license }: LicenseModalProps) {
+  const { t } = useLanguage();
+  const [isUploading, setIsUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [form, setForm] = useState({
     name: "", category: "Software" as LicenseCategory, licenseNumber: "",
     owner: "", vendor: "", issueDate: "", expiryDate: "",
@@ -19,6 +24,7 @@ export default function LicenseModal({ isOpen, onClose, onSave, license }: Licen
   });
 
   useEffect(() => {
+    setSelectedFile(null);
     if (license) {
       setForm({
         name: license.name, category: license.category, licenseNumber: license.licenseNumber,
@@ -34,9 +40,26 @@ export default function LicenseModal({ isOpen, onClose, onSave, license }: Licen
     }
   }, [license, isOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(form);
+    setIsUploading(true);
+    let uploadedFileUrl = form.fileUrl;
+    let uploadedFileName = form.fileName;
+
+    if (selectedFile) {
+      const fileExt = selectedFile.name.split('.').pop();
+      const newFileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+      
+      const { error } = await supabase.storage.from('licenses').upload(newFileName, selectedFile);
+      if (!error) {
+        const { data: publicUrlData } = supabase.storage.from('licenses').getPublicUrl(newFileName);
+        uploadedFileUrl = publicUrlData.publicUrl;
+        uploadedFileName = selectedFile.name;
+      }
+    }
+
+    onSave({ ...form, fileUrl: uploadedFileUrl, fileName: uploadedFileName });
+    setIsUploading(false);
     onClose();
   };
 
@@ -48,7 +71,7 @@ export default function LicenseModal({ isOpen, onClose, onSave, license }: Licen
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <h2 className="headline-md">
-            {license ? "Edit Lisensi" : "Tambah Lisensi"}
+            {license ? t("modal.edit_title") : t("modal.add_title")}
           </h2>
           <button
             onClick={onClose}
@@ -66,20 +89,20 @@ export default function LicenseModal({ isOpen, onClose, onSave, license }: Licen
               <div className="w-7 h-7 rounded-full bg-[rgba(99,102,241,0.1)] flex items-center justify-center">
                 <Info className="w-4 h-4 text-[var(--accent-gradient-start)]" />
               </div>
-              <h3 className="form-section-title !m-0 !p-0 !border-0 text-[var(--text-primary)]">Informasi Umum</h3>
+              <h3 className="form-section-title !m-0 !p-0 !border-0 text-[var(--text-primary)]">{t("modal.section_general")}</h3>
             </div>
             
-            <Field label="Nama Lisensi *">
+            <Field label={t("modal.field_name")}>
               <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Mis: Microsoft 365 Business" required className="input" />
+                placeholder={t("modal.field_name_placeholder")} required className="input" />
             </Field>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <Field label="Nomor Lisensi *">
+              <Field label={t("modal.field_number")}>
                 <input type="text" value={form.licenseNumber} onChange={(e) => setForm({ ...form, licenseNumber: e.target.value })}
                   placeholder="MS365-BP-2024-001" required className="input font-mono text-[13px]" />
               </Field>
-              <Field label="Kategori *">
+              <Field label={t("modal.field_category")}>
                 <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value as LicenseCategory })}
                   className="input cursor-pointer">
                   {categories.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -88,13 +111,13 @@ export default function LicenseModal({ isOpen, onClose, onSave, license }: Licen
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <Field label="Vendor *">
+              <Field label={t("modal.field_vendor")}>
                 <input type="text" value={form.vendor} onChange={(e) => setForm({ ...form, vendor: e.target.value })}
-                  placeholder="Mis: Microsoft Corporation" required className="input" />
+                  placeholder={t("modal.field_vendor_placeholder")} required className="input" />
               </Field>
-              <Field label="PIC / Divisi (Pemilik) *">
+              <Field label={t("modal.field_owner")}>
                 <input type="text" value={form.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })}
-                  placeholder="Mis: Divisi IT" required className="input" />
+                  placeholder={t("modal.field_owner_placeholder")} required className="input" />
               </Field>
             </div>
           </div>
@@ -107,21 +130,21 @@ export default function LicenseModal({ isOpen, onClose, onSave, license }: Licen
               <div className="w-7 h-7 rounded-full bg-[rgba(245,158,11,0.1)] flex items-center justify-center">
                 <Calendar className="w-4 h-4 text-[var(--status-expiring)]" />
               </div>
-              <h3 className="form-section-title !m-0 !p-0 !border-0 text-[var(--text-primary)]">Tanggal & Status</h3>
+              <h3 className="form-section-title !m-0 !p-0 !border-0 text-[var(--text-primary)]">{t("modal.section_date_status")}</h3>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <Field label="Tanggal Terbit *">
+              <Field label={t("modal.field_issue_date")}>
                 <input type="date" value={form.issueDate} onChange={(e) => setForm({ ...form, issueDate: e.target.value })}
                   required className="input cursor-text" />
               </Field>
-              <Field label="Tanggal Kadaluarsa *">
+              <Field label={t("modal.field_expiry_date")}>
                 <input type="date" value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
                   required className="input cursor-text" />
               </Field>
             </div>
 
-            <Field label="Status *">
+            <Field label={t("modal.field_status")}>
               <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as LicenseStatus })}
                 className="input sm:max-w-[50%] cursor-pointer">
                 {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -137,27 +160,29 @@ export default function LicenseModal({ isOpen, onClose, onSave, license }: Licen
               <div className="w-7 h-7 rounded-full bg-[rgba(16,185,129,0.1)] flex items-center justify-center">
                 <ShieldCheck className="w-4 h-4 text-[var(--status-active)]" />
               </div>
-              <h3 className="form-section-title !m-0 !p-0 !border-0 text-[var(--text-primary)]">Dokumen & Catatan</h3>
+              <h3 className="form-section-title !m-0 !p-0 !border-0 text-[var(--text-primary)]">{t("modal.section_docs")}</h3>
             </div>
 
-            <Field label="Catatan Tambahan">
+            <Field label={t("modal.field_notes")}>
               <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                placeholder="Tambahkan keterangan spesifik, kendala, atau informasi penting lainnya..." rows={3} className="input resize-none py-3" />
+                placeholder={t("modal.field_notes_placeholder")} rows={3} className="input resize-none py-3" />
             </Field>
 
-            <Field label="Upload Dokumen (Opsional)">
+            <Field label={t("modal.field_upload")}>
               <div className="relative flex items-center gap-4 p-4 rounded-2xl border-2 border-dashed border-[var(--border-subtle)] hover:border-[var(--accent-gradient-start)] transition-colors bg-[var(--bg-inset)] cursor-pointer group">
                 <div className="w-12 h-12 rounded-xl bg-[var(--bg-surface)] shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                  {form.fileName ? <FileText className="w-6 h-6 text-[var(--accent-gradient-start)]" /> : <Upload className="w-6 h-6 text-[var(--text-muted)] group-hover:text-[var(--accent-gradient-start)]" />}
+                  {form.fileName || selectedFile ? <FileText className="w-6 h-6 text-[var(--accent-gradient-start)]" /> : <Upload className="w-6 h-6 text-[var(--text-muted)] group-hover:text-[var(--accent-gradient-start)]" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[14px] font-bold text-[var(--text-primary)] truncate">{form.fileName || "Pilih file atau tarik ke sini"}</p>
-                  <p className="text-[12px] font-medium text-[var(--text-muted)] mt-1">{form.fileName ? "Dokumen berhasil dilampirkan" : "Format yang didukung: PDF, JPG, PNG (Maks 10MB)"}</p>
+                  <p className="text-[14px] font-bold text-[var(--text-primary)] truncate">{selectedFile ? selectedFile.name : (form.fileName || t("modal.upload_placeholder"))}</p>
+                  <p className="text-[12px] font-medium text-[var(--text-muted)] mt-1">{form.fileName || selectedFile ? t("modal.upload_success") : t("modal.upload_info")}</p>
                 </div>
                 <input type="file" accept=".pdf,.png,.jpg,.jpeg" className="absolute inset-0 opacity-0 cursor-pointer"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) setForm({ ...form, fileName: file.name, fileUrl: URL.createObjectURL(file) });
+                    if (file) {
+                      setSelectedFile(file);
+                    }
                   }}
                 />
               </div>
@@ -166,10 +191,10 @@ export default function LicenseModal({ isOpen, onClose, onSave, license }: Licen
 
           {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-6 border-t border-[var(--border-subtle)] mt-8">
-            <button type="button" onClick={onClose} className="btn-secondary px-6">Batal</button>
-            <button type="submit" className="btn-primary px-8">
-              <Save className="w-4.5 h-4.5" />
-              {license ? "Simpan Perubahan" : "Simpan Lisensi Baru"}
+            <button type="button" onClick={onClose} disabled={isUploading} className="btn-secondary px-6 disabled:opacity-50">{t("modal.cancel")}</button>
+            <button type="submit" disabled={isUploading} className="btn-primary px-8 disabled:opacity-50">
+              {isUploading ? <Loader2 className="w-4.5 h-4.5 animate-spin" /> : <Save className="w-4.5 h-4.5" />}
+              {license ? t("modal.save_changes") : t("modal.save_new")}
             </button>
           </div>
         </form>

@@ -58,3 +58,103 @@ CREATE POLICY "Allow public read access" ON licenses FOR SELECT USING (true);
 CREATE POLICY "Allow public insert access" ON licenses FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow public update access" ON licenses FOR UPDATE USING (true);
 CREATE POLICY "Allow public delete access" ON licenses FOR DELETE USING (true);
+
+-- --------------------------------------------------------
+-- KONFIGURASI STORAGE BUCKET (licenses)
+-- --------------------------------------------------------
+
+-- Membuat Storage Bucket untuk file lisensi
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('licenses', 'licenses', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Mengizinkan public read untuk bucket licenses
+CREATE POLICY "Public Access" 
+ON storage.objects FOR SELECT 
+USING (bucket_id = 'licenses');
+
+-- Mengizinkan insert untuk bucket licenses
+CREATE POLICY "Allow public upload" 
+ON storage.objects FOR INSERT 
+WITH CHECK (bucket_id = 'licenses');
+
+-- Mengizinkan update untuk bucket licenses
+CREATE POLICY "Allow public update" 
+ON storage.objects FOR UPDATE 
+USING (bucket_id = 'licenses');
+
+-- Mengizinkan delete untuk bucket licenses
+CREATE POLICY "Allow public delete" 
+ON storage.objects FOR DELETE 
+USING (bucket_id = 'licenses');
+
+-- --------------------------------------------------------
+-- SETUP DEFAULT ADMIN USER
+-- --------------------------------------------------------
+-- Menambahkan ekstensi pgcrypto untuk hashing password
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- Hapus user lama jika sudah ada (opsional, untuk mencegah error saat dijalankan ulang)
+DELETE FROM auth.users WHERE email = 'admin@company.com';
+
+-- Masukkan user admin ke tabel auth.users
+INSERT INTO auth.users (
+  instance_id,
+  id,
+  aud,
+  role,
+  email,
+  encrypted_password,
+  email_confirmed_at,
+  recovery_sent_at,
+  last_sign_in_at,
+  raw_app_meta_data,
+  raw_user_meta_data,
+  created_at,
+  updated_at,
+  confirmation_token,
+  email_change,
+  email_change_token_new,
+  recovery_token
+) VALUES (
+  '00000000-0000-0000-0000-000000000000',
+  gen_random_uuid(),
+  'authenticated',
+  'authenticated',
+  'admin@company.com',
+  crypt('admin123', gen_salt('bf')),
+  now(),
+  now(),
+  now(),
+  '{"provider":"email","providers":["email"]}',
+  '{}',
+  now(),
+  now(),
+  '',
+  '',
+  '',
+  ''
+);
+
+-- Masukkan data identitas login untuk admin
+INSERT INTO auth.identities (
+  id,
+  user_id,
+  provider_id,
+  identity_data,
+  provider,
+  last_sign_in_at,
+  created_at,
+  updated_at
+)
+SELECT
+  gen_random_uuid(),
+  id,
+  id::text,
+  format('{"sub":"%s","email":"%s"}', id, email)::jsonb,
+  'email',
+  now(),
+  now(),
+  now()
+FROM auth.users
+WHERE email = 'admin@company.com';

@@ -17,8 +17,10 @@ import Link from "next/link";
 import { getDaysUntilExpiry, formatDate, getStatusColor } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { License, mockLicenses } from "@/lib/mockData";
+import { useLanguage } from "@/lib/LanguageContext";
 
 export default function DashboardPage() {
+  const { t } = useLanguage();
   const [licenses, setLicenses] = useState<License[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -77,10 +79,10 @@ export default function DashboardPage() {
   }, [licenses]);
 
   const statCards = [
-    { label: "Total Lisensi", value: stats.total, icon: Shield, color: "indigo" as const },
-    { label: "Aktif", value: stats.active, icon: CheckCircle2, color: "emerald" as const },
-    { label: "Akan Kadaluarsa", value: stats.expiringSoon, icon: AlertTriangle, color: "amber" as const },
-    { label: "Kadaluarsa", value: stats.expired, icon: XCircle, color: "rose" as const },
+    { label: t("dashboard.total_licenses"), value: stats.total, icon: Shield, color: "indigo" as const },
+    { label: t("dashboard.active"), value: stats.active, icon: CheckCircle2, color: "emerald" as const },
+    { label: t("dashboard.expiring_soon"), value: stats.expiringSoon, icon: AlertTriangle, color: "amber" as const },
+    { label: t("dashboard.expired"), value: stats.expired, icon: XCircle, color: "rose" as const },
   ];
 
   const colors = {
@@ -106,8 +108,8 @@ export default function DashboardPage() {
         <div className="absolute inset-0 bg-mesh-gradient opacity-40 pointer-events-none" />
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <h1 className="headline-lg mb-2">Ringkasan <span className="gradient-text">Lisensi</span></h1>
-            <p className="text-[15px] text-[var(--text-secondary)] font-medium">Pantau status seluruh lisensi perusahaan Anda di satu tempat.</p>
+            <h1 className="headline-lg mb-2">{t("dashboard.title")}</h1>
+            <p className="text-[15px] text-[var(--text-secondary)] font-medium">{t("dashboard.subtitle")}</p>
           </div>
           <div className="flex items-center gap-2 bg-[var(--bg-inset)] px-4 py-2 rounded-full border border-[var(--border-subtle)]">
             <Calendar className="w-4 h-4 text-[var(--text-muted)]" />
@@ -158,13 +160,13 @@ export default function DashboardPage() {
               <div className="w-8 h-8 rounded-full bg-[var(--status-expiring-bg)] flex items-center justify-center">
                 <Clock className="w-4 h-4 text-[var(--status-expiring)]" />
               </div>
-              <h2 className="headline-sm">Segera Kadaluarsa</h2>
+              <h2 className="headline-sm">{t("dashboard.expiring_section_title")}</h2>
             </div>
             <Link
               href="/dashboard/licenses"
               className="text-[13px] font-bold text-[var(--accent-gradient-start)] hover:text-[var(--accent-hover)] transition-colors flex items-center gap-1.5 bg-[var(--accent-gradient-start)]/10 px-3 py-1.5 rounded-full"
             >
-              Lihat Semua <ArrowRight className="w-4 h-4" />
+              {t("dashboard.view_all")} <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
 
@@ -173,8 +175,8 @@ export default function DashboardPage() {
               <div className="w-16 h-16 rounded-full bg-[var(--bg-inset)] flex items-center justify-center mx-auto mb-4 border border-[var(--border-subtle)]">
                 <FileText className="w-8 h-8 text-[var(--text-muted)]" />
               </div>
-              <p className="text-[var(--text-primary)] font-bold text-[16px] mb-1">Belum ada lisensi mendesak</p>
-              <p className="text-[var(--text-muted)] text-[13px]">Status lisensi Anda saat ini aman terkendali.</p>
+              <p className="text-[var(--text-primary)] font-bold text-[16px] mb-1">{t("dashboard.no_urgent_licenses")}</p>
+              <p className="text-[var(--text-muted)] text-[13px]">{t("dashboard.no_urgent_desc")}</p>
             </div>
           ) : (
             <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
@@ -207,7 +209,7 @@ export default function DashboardPage() {
                           className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold mt-1"
                           style={{ color: dayColor, backgroundColor: dayBg }}
                         >
-                          {isExpired ? `${Math.abs(days)}d expired` : `${days}d left`}
+                          {isExpired ? t("dashboard.days_expired", { days: Math.abs(days) }) : t("dashboard.days_left", { days: days })}
                         </span>
                       </div>
                       <div className="w-[110px] text-right shrink-0">
@@ -229,7 +231,7 @@ export default function DashboardPage() {
               <div className="w-8 h-8 rounded-full bg-[rgba(139,92,246,0.1)] flex items-center justify-center">
                 <TrendingUp className="w-4 h-4 text-purple-500" />
               </div>
-              <h2 className="headline-sm">Kategori</h2>
+              <h2 className="headline-sm">{t("dashboard.categories")}</h2>
             </div>
             <div className="space-y-5">
               {[
@@ -259,11 +261,11 @@ export default function DashboardPage() {
           {/* Quick action */}
           <div className="card p-6 md:p-8 bg-mesh-gradient border-[var(--border-subtle)] relative overflow-hidden">
             <div className="relative z-10">
-              <h2 className="headline-sm mb-2 text-[var(--text-primary)]">Kelola Data</h2>
-              <p className="text-[13px] text-[var(--text-secondary)] mb-6 font-medium">Tambah atau perbarui lisensi Anda.</p>
+              <h2 className="headline-sm mb-2 text-[var(--text-primary)]">{t("dashboard.manage_data")}</h2>
+              <p className="text-[13px] text-[var(--text-secondary)] mb-6 font-medium">{t("dashboard.manage_desc")}</p>
               <Link href="/dashboard/licenses" className="btn-primary w-full py-3 shadow-lg hover:shadow-xl">
                 <FileText className="w-4.5 h-4.5" />
-                Buka Manajemen Lisensi
+                {t("dashboard.open_management")}
               </Link>
             </div>
           </div>

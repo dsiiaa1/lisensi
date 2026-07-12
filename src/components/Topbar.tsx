@@ -1,19 +1,23 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Shield, Sun, Moon, Bell, Search, User, Menu, X, LogOut } from "lucide-react";
+import { useLanguage } from "@/lib/LanguageContext";
 import { useTheme } from "@/lib/ThemeContext";
-import { useState, useEffect, useRef } from "react";
-import { cn } from "@/lib/utils";
+import { TranslationKey } from "@/lib/translations";
+import { getDaysUntilExpiry, cn } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 
 const navItems = [
-  { label: "Dashboard", href: "/dashboard" },
-  { label: "Lisensi", href: "/dashboard/licenses" },
+  { key: "topbar.dashboard" as TranslationKey, href: "/dashboard" },
+  { key: "topbar.licenses" as TranslationKey, href: "/dashboard/licenses" },
 ];
 
 export default function Topbar() {
   const { theme, toggleTheme } = useTheme();
+  const { language, toggleLanguage, t } = useLanguage();
   const pathname = usePathname();
   const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
@@ -21,6 +25,30 @@ export default function Topbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [expiringLicenses, setExpiringLicenses] = useState<any[]>([]);
+  const notifRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setNotificationsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      const { data } = await supabase.from('licenses').select('id, name, expiry_date, status').neq('status', 'Non-aktif');
+      if (data) {
+        const expiring = data.filter(d => getDaysUntilExpiry(d.expiry_date) <= 30);
+        setExpiringLicenses(expiring);
+      }
+    };
+    fetchNotifications();
+  }, []);
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +104,7 @@ export default function Topbar() {
                         : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]"
                     )}
                   >
-                    {item.label}
+                    {t(item.key)}
                   </Link>
                 );
               })}
@@ -95,7 +123,7 @@ export default function Topbar() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onBlur={() => !searchQuery && setShowSearch(false)}
-                    placeholder="Cari lisensi..."
+                    placeholder={t("topbar.search_placeholder")}
                     className="input pl-10 pr-4 py-2 w-48 sm:w-64 rounded-full border-[var(--border-subtle)] shadow-sm bg-[var(--bg-surface)] text-[13px] font-medium"
                   />
                 </form>
@@ -108,11 +136,56 @@ export default function Topbar() {
               </button>
             </div>
 
+            {/* Language Toggle */}
+            <button
+              onClick={toggleLanguage}
+              className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-bold text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] transition-colors"
+            >
+              {language === 'id' ? 'ID' : 'EN'}
+            </button>
+
             {/* Notifications */}
-            <Link href="/dashboard/licenses?status=Akan+Kadaluarsa" className="w-9 h-9 rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] transition-colors relative" title="Lihat lisensi akan kadaluarsa">
-              <Bell className="w-4.5 h-4.5" />
-              <span className="absolute top-2 right-2.5 w-1.5 h-1.5 rounded-full bg-[var(--status-expired)]" />
-            </Link>
+            <div className="relative" ref={notifRef}>
+              <button 
+                onClick={() => setNotificationsOpen(!notificationsOpen)}
+                className="w-9 h-9 rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] transition-colors relative" 
+                title="Notifikasi Lisensi"
+              >
+                <Bell className="w-4.5 h-4.5" />
+                {expiringLicenses.length > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[var(--status-expired)]" />
+                )}
+              </button>
+              
+              {notificationsOpen && (
+                <div className="absolute right-0 mt-2 w-80 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-2xl shadow-lg z-50 animate-fadeIn overflow-hidden">
+                  <div className="px-4 py-3 border-b border-[var(--border-subtle)] flex items-center justify-between">
+                    <p className="text-[13px] font-bold">Notifikasi</p>
+                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-[var(--status-expiring-bg)] text-[var(--status-expiring)] font-bold">{expiringLicenses.length} Mendesak</span>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto custom-scrollbar p-2">
+                    {expiringLicenses.length === 0 ? (
+                      <div className="text-center py-6 text-[var(--text-muted)] text-[12px]">Belum ada lisensi mendesak.</div>
+                    ) : (
+                      expiringLicenses.map(l => {
+                        const days = getDaysUntilExpiry(l.expiry_date);
+                        return (
+                          <div key={l.id} className="p-3 hover:bg-[var(--bg-surface-hover)] rounded-xl transition-colors mb-1">
+                            <p className="text-[13px] font-bold text-[var(--text-primary)] truncate">{l.name}</p>
+                            <p className={`text-[11px] font-bold mt-1 ${days < 0 ? 'text-[var(--status-expired)]' : 'text-[var(--status-expiring)]'}`}>
+                              {days < 0 ? `Kadaluarsa ${Math.abs(days)} hari lalu` : `Kadaluarsa dalam ${days} hari`}
+                            </p>
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+                  <div className="p-2 border-t border-[var(--border-subtle)]">
+                    <Link href="/dashboard/licenses?status=Akan+Kadaluarsa" onClick={() => setNotificationsOpen(false)} className="block w-full text-center text-[12px] font-bold text-[var(--accent-gradient-start)] hover:bg-[rgba(99,102,241,0.1)] py-2 rounded-lg transition-colors">Lihat Semua</Link>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Theme Toggle */}
             <button
@@ -134,7 +207,7 @@ export default function Topbar() {
                 <div className="w-7 h-7 rounded-full bg-[var(--bg-inset)] flex items-center justify-center border border-[var(--border-subtle)]">
                   <User className="w-4 h-4 text-[var(--text-muted)]" />
                 </div>
-                <span className="text-[13px] font-semibold">Admin</span>
+                <span className="text-[13px] font-semibold">{t("topbar.admin")}</span>
               </button>
 
               {/* Simple dropdown */}
@@ -149,7 +222,7 @@ export default function Topbar() {
                       onClick={() => router.push("/")}
                       className="w-full text-left px-3 py-2 text-[13px] font-medium text-[var(--status-expired)] hover:bg-[var(--status-expired-bg)] rounded-lg flex items-center gap-2 transition-colors"
                     >
-                      <LogOut className="w-4 h-4" /> Keluar
+                      <LogOut className="w-4 h-4" /> {t("topbar.logout")}
                     </button>
                   </div>
                 </div>
@@ -185,7 +258,7 @@ export default function Topbar() {
                       : "text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)]"
                   )}
                 >
-                  {item.label}
+                  {t(item.key)}
                 </Link>
               );
             })}
@@ -204,7 +277,7 @@ export default function Topbar() {
                 onClick={() => router.push("/")}
                 className="w-full mt-2 text-left px-4 py-3 text-[14px] font-semibold text-[var(--status-expired)] bg-[var(--status-expired-bg)] rounded-xl flex items-center gap-2"
               >
-                <LogOut className="w-4 h-4" /> Keluar
+                <LogOut className="w-4 h-4" /> {t("topbar.logout")}
               </button>
             </div>
           </nav>

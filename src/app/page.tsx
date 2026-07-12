@@ -5,11 +5,14 @@ import { useRouter } from "next/navigation";
 import { Shield, Eye, EyeOff, ArrowRight, Lock, Mail, KeyRound } from "lucide-react";
 import Link from "next/link";
 import { useTheme } from "@/lib/ThemeContext";
+import { useLanguage } from "@/lib/LanguageContext";
 import { Sun, Moon } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
+  const { t } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -18,14 +21,20 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    if (email === "admin@company.com" && password === "admin123") {
-      router.push("/dashboard");
+    setError("");
+
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (authError) {
+      setError(t("login.error"));
     } else {
-      setError("Email atau password salah.");
+      router.push("/dashboard");
     }
+    
     setIsLoading(false);
   };
 
@@ -60,24 +69,24 @@ export default function LoginPage() {
         {/* Card */}
         <div className="card p-8">
           <div className="mb-6">
-            <h2 className="headline-sm">Selamat Datang</h2>
-            <p className="text-[13px] text-[var(--text-muted)] mt-1">Masuk dengan akun perusahaan Anda</p>
+            <h2 className="headline-sm">{t("login.welcome")}</h2>
+            <p className="text-[13px] text-[var(--text-muted)] mt-1">{t("login.subtitle")}</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-[12px] font-bold text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Email</label>
+              <label className="block text-[12px] font-bold text-[var(--text-secondary)] mb-2 uppercase tracking-wider">{t("login.email")}</label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-[var(--text-muted)]" />
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                  placeholder="nama@perusahaan.com" required className="input pl-10 py-2.5" />
+                  placeholder="admin@company.com" required className="input pl-10 py-2.5" />
               </div>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-[12px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">Password</label>
-                <Link href="#" className="text-[12px] font-medium text-[var(--accent-gradient-start)] hover:underline">Lupa password?</Link>
+                <label className="block text-[12px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">{t("login.password")}</label>
+                <Link href="#" className="text-[12px] font-medium text-[var(--accent-gradient-start)] hover:underline">{t("login.forgot")}</Link>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-[var(--text-muted)]" />
@@ -103,25 +112,11 @@ export default function LoginPage() {
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
-                <>Masuk ke Dashboard <ArrowRight className="w-4.5 h-4.5 ml-1" /></>
+                <>{t("login.button")} <ArrowRight className="w-4.5 h-4.5 ml-1" /></>
               )}
             </button>
           </form>
 
-          {/* Demo Section */}
-          <div className="mt-8 pt-6 border-t border-[var(--border-subtle)]">
-            <div className="flex items-center gap-2 mb-3">
-              <KeyRound className="w-4 h-4 text-[var(--text-muted)]" />
-              <p className="text-[11px] text-[var(--text-muted)] font-bold uppercase tracking-wider">Akses Demo</p>
-            </div>
-            <div className="grid grid-cols-1 gap-3">
-              <button type="button" onClick={() => { setEmail("admin@company.com"); setPassword("admin123"); }}
-                className="text-left px-4 py-3 rounded-xl bg-[var(--bg-inset)] border border-[var(--border-subtle)] hover:border-[var(--accent-gradient-start)] hover:bg-[var(--bg-surface-hover)] transition-all cursor-pointer group">
-                <span className="block text-[13px] font-bold text-[var(--text-primary)] group-hover:text-[var(--accent-gradient-start)] transition-colors">Admin</span>
-                <span className="block text-[11px] text-[var(--text-muted)] mt-0.5">admin@company.com</span>
-              </button>
-            </div>
-          </div>
         </div>
 
       </div>
