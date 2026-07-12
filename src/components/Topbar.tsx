@@ -26,7 +26,7 @@ export default function Topbar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [expiringLicenses, setExpiringLicenses] = useState<any[]>([]);
+  const [expiringLicenses, setExpiringLicenses] = useState<Record<string, string>[]>([]);
   const notifRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {

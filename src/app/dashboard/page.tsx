@@ -16,7 +16,7 @@ import {
 import Link from "next/link";
 import { getDaysUntilExpiry, formatDate, getStatusColor } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
-import { License, mockLicenses } from "@/lib/mockData";
+import { License, LicenseCategory, LicenseStatus, mockLicenses } from "@/lib/mockData";
 import { useLanguage } from "@/lib/LanguageContext";
 
 export default function DashboardPage() {
@@ -29,7 +29,7 @@ export default function DashboardPage() {
       const { data, error } = await supabase.from("licenses").select("*");
       if (!error && data && data.length > 0) {
         setLicenses(
-          data.map((d: any) => {
+          data.map((d: Record<string, string>) => {
             const days = getDaysUntilExpiry(d.expiry_date);
             let computedStatus = d.status;
             if (computedStatus !== "Non-aktif") {
@@ -40,13 +40,13 @@ export default function DashboardPage() {
             return {
               id: d.id,
               name: d.name,
-              category: d.category,
+              category: d.category as LicenseCategory,
               licenseNumber: d.license_number,
               owner: d.owner,
               vendor: d.vendor,
               issueDate: d.issue_date,
               expiryDate: d.expiry_date,
-              status: computedStatus,
+              status: computedStatus as LicenseStatus,
               notes: d.notes || "",
               fileUrl: d.file_url || "",
               fileName: d.file_name || "",

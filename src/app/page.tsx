@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Shield, Eye, EyeOff, ArrowRight, Lock, Mail, KeyRound } from "lucide-react";
+import { Shield, Eye, EyeOff, ArrowRight, Lock, Mail } from "lucide-react";
 import Link from "next/link";
 import { useTheme } from "@/lib/ThemeContext";
 import { useLanguage } from "@/lib/LanguageContext";

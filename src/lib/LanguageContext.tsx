@@ -1,7 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { translations, TranslationKey } from "./translations";
+import React, { createContext, useContext, useState, useSyncExternalStore, useCallback } from "react";
+import { translations, TranslationKey } from "@/lib/translations";
 
 type Language = "id" | "en";
 
@@ -13,34 +13,40 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguage] = useState<Language>("id");
-  const [mounted, setMounted] = useState(false);
+function getStoredLanguage(): Language {
+  if (typeof window === "undefined") return "id";
+  const saved = localStorage.getItem("app_lang");
+  if (saved === "id" || saved === "en") return saved;
+  return "id";
+}
 
-  useEffect(() => {
-    const savedLang = localStorage.getItem("app_lang") as Language;
-    if (savedLang === "id" || savedLang === "en") {
-      setLanguage(savedLang);
-    }
-    setMounted(true);
+// Use useSyncExternalStore to read localStorage without setState-in-effect lint errors
+const subscribe = (callback: () => void) => {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+};
+
+export function LanguageProvider({ children }: { children: React.ReactNode }) {
+  const initialLang = useSyncExternalStore(subscribe, getStoredLanguage, () => "id" as Language);
+  const [language, setLanguage] = useState<Language>(initialLang);
+
+  const toggleLanguage = useCallback(() => {
+    setLanguage(prev => {
+      const newLang = prev === "id" ? "en" : "id";
+      localStorage.setItem("app_lang", newLang);
+      return newLang;
+    });
   }, []);
 
-  const toggleLanguage = () => {
-    const newLang = language === "id" ? "en" : "id";
-    setLanguage(newLang);
-    localStorage.setItem("app_lang", newLang);
-  };
-
-  const t = (key: TranslationKey, params?: Record<string, string | number>): string => {
-    let str = translations[language][key] || key;
+  const t = useCallback((key: TranslationKey, params?: Record<string, string | number>): string => {
+    let str: string = translations[language][key] || key;
     if (params) {
       Object.keys(params).forEach(k => {
         str = str.replace(`{${k}}`, String(params[k]));
       });
     }
     return str;
-  };
-
+  }, [language]);
 
   return (
     <LanguageContext.Provider value={{ language, toggleLanguage, t }}>

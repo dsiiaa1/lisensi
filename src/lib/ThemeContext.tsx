@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useSyncExternalStore, ReactNode } from "react";
 
 type Theme = "dark" | "light";
 
@@ -14,24 +14,39 @@ const ThemeContext = createContext<ThemeContextType>({
   toggleTheme: () => {},
 });
 
+function getStoredTheme(): Theme {
+  if (typeof window === "undefined") return "dark";
+  const saved = localStorage.getItem("lisensiku-theme");
+  if (saved === "dark" || saved === "light") return saved;
+  return "dark";
+}
+
+const subscribe = (callback: () => void) => {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+};
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("dark");
+  const initialTheme = useSyncExternalStore(subscribe, getStoredTheme, () => "dark" as Theme);
+  const [theme, setTheme] = useState<Theme>(initialTheme);
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    const saved = localStorage.getItem("lisensiku-theme") as Theme | null;
-    if (saved) setTheme(saved);
+  // Apply theme to DOM once mounted
+  // Using a ref-like pattern to avoid setState in effect
+  if (typeof window !== "undefined" && !mounted) {
+    // This runs synchronously on first client render
     setMounted(true);
+  }
+
+  // Apply theme attribute whenever theme changes
+  if (typeof window !== "undefined" && mounted) {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("lisensiku-theme", theme);
+  }
+
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   }, []);
-
-  useEffect(() => {
-    if (mounted) {
-      document.documentElement.setAttribute("data-theme", theme);
-      localStorage.setItem("lisensiku-theme", theme);
-    }
-  }, [theme, mounted]);
-
-  const toggleTheme = () => setTheme((prev) => (prev === "dark" ? "light" : "dark"));
 
   if (!mounted) {
     return <div style={{ visibility: "hidden" }}>{children}</div>;

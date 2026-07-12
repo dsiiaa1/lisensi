@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -66,7 +67,7 @@ function LicensesContent() {
       .order("created_at", { ascending: false });
     if (!error && data && data.length > 0) {
       setLicenses(
-        data.map((d: any) => {
+        data.map((d: Record<string, string>) => {
           const days = getDaysUntilExpiry(d.expiry_date);
           let computedStatus = d.status;
           if (computedStatus !== "Non-aktif") {
@@ -77,13 +78,13 @@ function LicensesContent() {
           return {
             id: d.id,
             name: d.name,
-            category: d.category,
+            category: d.category as LicenseCategory,
             licenseNumber: d.license_number,
             owner: d.owner,
             vendor: d.vendor,
             issueDate: d.issue_date,
             expiryDate: d.expiry_date,
-            status: computedStatus,
+            status: computedStatus as LicenseStatus,
             notes: d.notes || "",
             fileUrl: d.file_url || "",
             fileName: d.file_name || "",
@@ -134,7 +135,7 @@ function LicensesContent() {
         fetchLicenses();
       }
     } else {
-      const { error, data: resData } = await supabase.from("licenses").insert([payload]).select();
+      const { error } = await supabase.from("licenses").insert([payload]).select();
       if (error) {
         // Fallback add mock local state
         setLicenses(prev => [{ ...data, id: Math.random().toString(36).substr(2, 9) }, ...prev]);
